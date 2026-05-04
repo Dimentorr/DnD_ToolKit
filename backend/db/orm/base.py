@@ -11,6 +11,7 @@
 from abc import abstractmethod
 
 from sqlalchemy.orm import DeclarativeBase
+
 from backend.models.base import BasePydanticModel
 
 
