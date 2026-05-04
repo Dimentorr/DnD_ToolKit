@@ -10,7 +10,7 @@
 
 from typing import Any
 from uuid import UUID, uuid4
-from sqlalchemy import UUID as SqlUUID, Integer, JSON, String
+from sqlalchemy import UUID as SqlUUID, JSON, String
 from sqlalchemy.ext.mutable import MutableDict
 
 from sqlalchemy.orm import Mapped, mapped_column
@@ -29,7 +29,8 @@ class Wallet(BasePydanticModel):
 
     def as_dict(self):
         return self.model_dump()
-    
+
+
 class Skills(BasePydanticModel):
     strength: int = 10
     dexterity: int = 10
@@ -37,7 +38,7 @@ class Skills(BasePydanticModel):
     intelligence: int = 10
     wisdom: int = 10
     charisma: int = 10
-    
+
     def as_dict(self):
         return self.model_dump()
 
@@ -45,7 +46,12 @@ class Skills(BasePydanticModel):
 class Datasheet(Base):
     __tablename__ = "datasheets"
 
-    uuid: Mapped[UUID] = mapped_column(SqlUUID, primary_key=True, default=uuid4, nullable=False,)
+    uuid: Mapped[UUID] = mapped_column(
+        SqlUUID,
+        primary_key=True,
+        default=uuid4,
+        nullable=False,
+    )
 
     user_uuid: Mapped[UUID] = mapped_column(
         SqlUUID,
@@ -60,6 +66,15 @@ class Datasheet(Base):
         nullable=False,
     )
 
-    wallet: Mapped[dict[str, Any]] = mapped_column( 
-    MutableDict.as_mutable(JSON), default=lambda: Wallet().as_dict(), comment='кошель персонажа',nullable=False,)
-    inventory: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSON), default=dict, comment='инвентарь персонажа',nullable=False)
+    wallet: Mapped[dict[str, Any]] = mapped_column(
+        MutableDict.as_mutable(JSON),
+        default=lambda: Wallet().as_dict(),
+        comment="кошель персонажа",
+        nullable=False,
+    )
+    inventory: Mapped[dict[str, Any]] = mapped_column(
+        MutableDict.as_mutable(JSON),
+        default=dict,
+        comment="инвентарь персонажа",
+        nullable=False,
+    )
