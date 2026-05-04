@@ -7,3 +7,24 @@
 
 Модуль для работы с API.
 """
+
+from fastapi import FastAPI
+from backend.api.routers import auth_router
+
+
+def create_app() -> FastAPI:
+    """Создаёт и настраивает экземпляр FastAPI-приложения.
+
+    Returns:
+        `FastAPI`: Настроенный экземпляр FastAPI-приложения.
+    """
+    app = FastAPI(
+        root_path="/api/v1",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        title="DnDToolKit::Dev",
+        version="0.0.1",
+    )
+    app.include_router(auth_router)
+
+    return app

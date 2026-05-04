@@ -1,0 +1,107 @@
+name: Ruff
+
+on:
+  pull_request:
+
+jobs:
+  ruff-check:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.12-slim-bookworm
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git and Poetry
+        run: |
+          apt-get update
+          apt-get install -y git curl
+          curl -sSL https://install.python-poetry.org | python -
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Poetry cache
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+
+      - name: Ruff check
+        run: |
+          set -euo pipefail
+
+          git diff --name-only --diff-filter=ACMR \
+            origin/${{ github.base_ref }}...HEAD \
+            -- '*.py' > changed_py_files.txt
+
+          echo "-----------------"
+          cat changed_py_files.txt || true
+          echo "-----------------"
+
+          if [ ! -s changed_py_files.txt ]; then
+            echo "Нет изменённых .py файлов в PR"
+            exit 0
+          fi
+
+          xargs -a changed_py_files.txt poetry run ruff check
+
+  ruff-format:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.12-slim-bookworm
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git and Poetry
+        run: |
+          apt-get update
+          apt-get install -y git curl
+          curl -sSL https://install.python-poetry.org | python -
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure Poetry cache
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+
+      - name: Ruff format check
+        run: |
+          set -euo pipefail
+
+          git diff --name-only --diff-filter=ACMR \
+            origin/${{ github.base_ref }}...HEAD \
+            -- '*.py' > changed_py_files.txt
+
+          echo "-----------------"
+          cat changed_py_files.txt || true
+          echo "-----------------"
+
+          if [ ! -s changed_py_files.txt ]; then
+            echo "Нет изменённых .py файлов в PR"
+            exit 0
+          fi
+
+          xargs -a changed_py_files.txt poetry run ruff format --check

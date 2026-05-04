@@ -1,0 +1,50 @@
+name: Ruff_CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - master
+  push:
+    branches:
+      - dev
+      - master
+
+jobs:
+  ruff:
+    name: Ruff_CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Configure Poetry
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: poetry install --only dev --no-root
+
+      - name: Ruff check
+        run: poetry run ruff check backend
+
+      - name: Ruff format check
+        run: poetry run ruff format --check backend
