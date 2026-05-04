@@ -9,8 +9,10 @@
 """
 
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, Response
 from fastapi.security import OAuth2PasswordRequestForm
+
 from backend.api.models.base import BaseHTTPResponse
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
@@ -21,9 +23,19 @@ async def login(
     response: Response,
     login_form: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> BaseHTTPResponse:
-    pass
+    """Авторизация в аккаунт
+
+    Args:
+        response (Response): _description_
+        login_form (Annotated[OAuth2PasswordRequestForm, Depends): _description_
+
+    Returns:
+        BaseHTTPResponse: _description_
+    """
+    return BaseHTTPResponse()
 
 
 @auth_router.post("/logout")
-async def logout():
-    pass
+async def logout() -> BaseHTTPResponse:
+    """Выйти из аккаунта"""
+    return BaseHTTPResponse()

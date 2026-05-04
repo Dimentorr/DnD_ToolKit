@@ -9,14 +9,17 @@
 """
 
 from uuid import UUID, uuid4
-from sqlalchemy import UUID as SqlUUID, String
 
+from sqlalchemy import UUID as SqlUUID
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.orm.base import Base
 
 
 class User(Base):
+    """ORM-модель таблицы users"""
+
     __tablename__ = "users"
 
     uuid: Mapped[UUID] = mapped_column(

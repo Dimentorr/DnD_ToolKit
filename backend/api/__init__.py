@@ -9,6 +9,7 @@
 """
 
 from fastapi import FastAPI
+
 from backend.api.routers import auth_router
 
 

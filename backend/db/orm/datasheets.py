@@ -10,17 +10,19 @@
 
 from typing import Any
 from uuid import UUID, uuid4
-from sqlalchemy import UUID as SqlUUID, JSON, String
-from sqlalchemy.ext.mutable import MutableDict
 
+from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import UUID as SqlUUID
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey
 
 from backend.db.orm.base import Base
 from backend.models.base import BasePydanticModel
 
 
 class Wallet(BasePydanticModel):
+    """Модель кошелька персонажа"""
+
     platina: int = 0
     electrum: int = 0
     gold: int = 0
@@ -28,10 +30,16 @@ class Wallet(BasePydanticModel):
     copper: int = 0
 
     def as_dict(self):
+        """Привести модель к словарю
+
+        Returns: `dict`
+        """
         return self.model_dump()
 
 
 class Skills(BasePydanticModel):
+    """Модель новыков персонажа"""
+
     strength: int = 10
     dexterity: int = 10
     constitution: int = 10
@@ -39,11 +47,17 @@ class Skills(BasePydanticModel):
     wisdom: int = 10
     charisma: int = 10
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
+        """Привести модель к словарю
+
+        Returns: `dict`
+        """
         return self.model_dump()
 
 
 class Datasheet(Base):
+    """ORM-модель таблицы datasheets"""
+
     __tablename__ = "datasheets"
 
     uuid: Mapped[UUID] = mapped_column(
