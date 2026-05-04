@@ -8,7 +8,6 @@
 Описание файла.
 """
 
-
 from uuid import UUID, uuid4
 from sqlalchemy import UUID as SqlUUID, String
 
@@ -20,6 +19,11 @@ from backend.db.orm.base import Base
 class User(Base):
     __tablename__ = "users"
 
-    uuid: Mapped[UUID] = mapped_column(SqlUUID, primary_key=True, default=uuid4, nullable=False,)
+    uuid: Mapped[UUID] = mapped_column(
+        SqlUUID,
+        primary_key=True,
+        default=uuid4,
+        nullable=False,
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     password: Mapped[str] = mapped_column(String, nullable=False)
