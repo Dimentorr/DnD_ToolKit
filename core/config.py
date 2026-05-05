@@ -14,8 +14,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class APPSettings(BaseSettings):
     """Класс настроек fastapi приложения"""
 
-    SECRET_KEY: str = "your-secret-key-change-in-production"
-    ALGORITHM: str = "HS256"
+    SECRET_KEY: str
+    ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
