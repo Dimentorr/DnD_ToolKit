@@ -8,18 +8,17 @@
 Описание файла.
 """
 
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 
-class BaseHTTPResponse(HTMLResponse):
+class BaseHTTPResponse(BaseModel):
     """Базовая модель ответа"""
 
     status_code: str = 200
     message: str = "OK"
 
 
-class BaseHTTPRequeest(BaseModel):
+class BaseHTTPRequest(BaseModel):
     """Базовая модель запроса"""
 
     pass
