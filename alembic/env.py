@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from backend.db.orm import datasheets  # noqa: F401
 from backend.db.orm import user  # noqa: F401
 
+from core.config import settings
 load_dotenv()
 
 database_url = os.getenv("DATABASE_URL")
@@ -25,7 +26,7 @@ config = context.config
 if database_url is None:
     raise RuntimeError("DATABASE_URL is not set")
 
-config.set_main_option("sqlalchemy.url", database_url)
+config.set_main_option("sqlalchemy.url", settings.db.url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
