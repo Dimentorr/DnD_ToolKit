@@ -17,7 +17,7 @@ class APPSettings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 364 * 364
 
     model_config = SettingsConfigDict(
         env_prefix="app_",
