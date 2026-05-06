@@ -8,7 +8,10 @@
 Описание файла.
 """
 
+import datetime
 from uuid import UUID
+
+from pydantic import EmailStr
 
 from backend.models.base import BasePydanticModel
 
@@ -18,6 +21,9 @@ class User(BasePydanticModel):
 
     uuid: UUID
     name: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+    email: EmailStr | None = None
     password: str | None = None
 
 
@@ -25,4 +31,5 @@ class UserCreated(BasePydanticModel):
     """pydantic-модель объекта user для регистрации"""
 
     name: str
+    email: EmailStr | None = None
     password: str

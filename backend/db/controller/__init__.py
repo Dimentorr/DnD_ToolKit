@@ -9,6 +9,7 @@
 """
 
 from backend.db.controller.base import Database
+from backend.db.controller.token import TokenController
 from backend.db.controller.user import UserController
 
 
@@ -16,13 +17,20 @@ class Database_Controller(Database):
     """Главный контроллер для работты с бд"""
 
     _user: UserController
+    _token: TokenController
 
     @property
     def User(self) -> UserController:
         """Контроллер для работы с таблицей users"""
         return self._user
 
+    @property
+    def Token(self) -> TokenController:
+        """Контроллер для работы с таблицей users"""
+        return self._token
+
     def __init__(self, url: str) -> None:
         """Инициализирует главный контроллер и все вложенные sub-controller'ы"""
         super().__init__(url)
         self._user = UserController(url)
+        self._token = TokenController(url)
