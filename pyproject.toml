@@ -11,13 +11,64 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi (>=0.136.1,<0.137.0)",
     "sqlalchemy (>=2.0.49,<3.0.0)",
-    "pydantic (>=2.13.3,<3.0.0)",
+    "pydantic[email] (>=2.13.3,<3.0.0)",
     "ruff (>=0.15.12,<0.16.0)",
     "alembic (>=1.18.4,<2.0.0)",
     "load-dotenv (>=0.1.0,<0.2.0)",
-    "psycopg[binary] (>=3.3.4,<4.0.0)"
+    "psycopg[binary] (>=3.3.4,<4.0.0)",
+    "uvicorn[standard] (>=0.46.0,<0.47.0)",
+    "python-multipart (>=0.0.27,<0.0.28)",
+    "pydantic-settings (>=2.14.0,<3.0.0)",
+    "passlib (>=1.7.4,<2.0.0)",
+    "python-jose[cryptography] (>=3.5.0,<4.0.0)"
 ]
 
+[tool.ruff]
+line-length = 120
+fix = true
+preview = true
+force-exclude = true
+exclude = [
+    ".venv",
+    "alembic",
+    "test",
+    "test_script",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "D", "ANN"]  # pycodestyle; Pyflakes; isort; docstring; annotation
+
+# Завершение первой строки docstring
+# D400 and D415 -> первая строка docsting должна заканчиваться знаком
+# D400 - первая строка docstring заканчивается знаком: ., ?, !
+# D415 - первая строка многострочного комментария заканчивается знаком: .
+
+# D203 - требуется 1 пустая строка перед определением класса
+# не так: """Название
+# а вот так: """
+# Название
+
+# ANN002 - анотация для *args
+# ANN003 - анотация для **kwargs
+ignore = [
+"D400", "D415",
+"D203",
+"ANN002",
+"ANN003",
+"ANN201",
+"ANN401",
+"D202",  # No blank lines allowed after function docstring
+"D213",  # Multi-line docstring summary should start at the second line
+"D301", # `/` in path from file by my header
+"D413" # missing blank line after Returns in docstring
+]
+
+# docstring-convention = "all"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
