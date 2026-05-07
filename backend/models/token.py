@@ -8,9 +8,18 @@
 Модуль моделей токенов.
 """
 
+from enum import StrEnum, auto
 from uuid import UUID
 
 from backend.models.base import BasePydanticModel
+
+
+class UserRole(StrEnum):
+    """Возможные роли в приложении"""
+
+    USER = auto()
+    MODERATOR = auto()
+    ADMIN = auto()
 
 
 class CookieTokenData(BasePydanticModel):
@@ -18,10 +27,10 @@ class CookieTokenData(BasePydanticModel):
 
     Attrs:
         user_uuid (UUID): UUID пользователя из поля `sub` JWT payload.
-        scope (str): Область доступа пользователя из поля `scope`.
+        role (str): Роль пользователя из поля `scope`.
         token_type (str): Тип токена.
     """
 
     user_uuid: UUID
-    scope: str
+    role: UserRole
     token_type: str
