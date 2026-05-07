@@ -1,4 +1,15 @@
+# для docker
+POSTGRES_DB=database
+POSTGRES_USER=user
+POSTGRES_PASSWORD=pasword
+POSTGRES_PORT=5432
+
+API_PORT=8000
+
+# непосредственно для приложения
 APP_SECRET_KEY = "your secret key"
 APP_ALGORITHM = "algogithm"
+APP_ACCESS_TOKEN_EXPIRE_MINUTES=30
+APP_REFRESH_TOKEN_EXPIRE_DAYS=7
 
 DATABASE_URL = "postgresql+psycopg://user:pasword@host:port/database"
