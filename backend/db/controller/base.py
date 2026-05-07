@@ -8,6 +8,8 @@
 Модуль с базовыми классами взаимодействования с БД.
 """
 
+import datetime
+import re
 from abc import ABC, ABCMeta
 from contextlib import asynccontextmanager
 from typing import Self
@@ -114,3 +116,19 @@ class Database(Database_Connection):
                     yield session
         else:
             yield session
+
+    def parse_datetime(self, value: object) -> datetime.datetime:
+        """Привести значение из БД к datetime."""
+
+        if isinstance(value, datetime.datetime):
+            return value
+
+        if isinstance(value, str):
+            normalized_value = re.sub(
+                r"([+-]\d{2})$",
+                r"\1:00",
+                value,
+            )
+            return datetime.datetime.fromisoformat(normalized_value)
+
+        raise TypeError(f"Expected datetime or str, got {type(value).__name__}")
