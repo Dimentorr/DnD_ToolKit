@@ -1,0 +1,4 @@
+APP_SECRET_KEY = "your secret key"
+APP_ALGORITHM = "algogithm"
+
+DATABASE_URL = "postgresql+psycopg://user:pasword@host:port/database"
