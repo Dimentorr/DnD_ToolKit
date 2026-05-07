@@ -8,51 +8,17 @@
 Описание файла.
 """
 
+import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import JSON, TIMESTAMP, ForeignKey, String, func
 from sqlalchemy import UUID as SqlUUID
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.orm.base import Base
-from backend.models.base import BasePydanticModel
-
-
-class Wallet(BasePydanticModel):
-    """Модель кошелька персонажа"""
-
-    platina: int = 0
-    electrum: int = 0
-    gold: int = 0
-    silver: int = 0
-    copper: int = 0
-
-    def as_dict(self):
-        """Привести модель к словарю
-
-        Returns: `dict`
-        """
-        return self.model_dump()
-
-
-class Skills(BasePydanticModel):
-    """Модель новыков персонажа"""
-
-    strength: int = 10
-    dexterity: int = 10
-    constitution: int = 10
-    intelligence: int = 10
-    wisdom: int = 10
-    charisma: int = 10
-
-    def as_dict(self) -> dict:
-        """Привести модель к словарю
-
-        Returns: `dict`
-        """
-        return self.model_dump()
+from backend.models.datasheet import Features, Stats, Wallet
 
 
 class Datasheet(Base):
@@ -72,11 +38,11 @@ class Datasheet(Base):
         ForeignKey("users.uuid"),
         nullable=False,
     )
-    name_character: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
 
-    skills: Mapped[dict[str, int]] = mapped_column(
+    stats: Mapped[dict[str, int]] = mapped_column(
         MutableDict.as_mutable(JSON),
-        default=lambda: Skills().as_dict(),
+        default=lambda: Stats().as_dict(),
         nullable=False,
     )
 
@@ -86,9 +52,28 @@ class Datasheet(Base):
         comment="кошель персонажа",
         nullable=False,
     )
+    features: Mapped[dict[str, Any]] = mapped_column(
+        MutableDict.as_mutable(JSON),
+        default=lambda: Features().as_dict(),
+        comment="черты персонажа",
+        nullable=False,
+    )
+
     inventory: Mapped[dict[str, Any]] = mapped_column(
         MutableDict.as_mutable(JSON),
         default=dict,
         comment="инвентарь персонажа",
         nullable=False,
+    )
+
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )

@@ -10,7 +10,7 @@
 
 from fastapi import FastAPI
 
-from backend.api.routers import auth_router
+from backend.api.routers import auth_router, datacheet_router
 
 
 def create_app() -> FastAPI:
@@ -27,5 +27,6 @@ def create_app() -> FastAPI:
         version="0.0.1",
     )
     app.include_router(auth_router)
+    app.include_router(datacheet_router)
 
     return app
