@@ -10,7 +10,7 @@
 
 from fastapi import FastAPI
 
-from backend.api.routers import auth_router, datacheet_router, helthcheck_router
+from backend.api.routers import auth_router, datacheet_router, healthcheck_router
 
 
 def create_app() -> FastAPI:
@@ -26,7 +26,7 @@ def create_app() -> FastAPI:
         title="DnDToolKit::Dev",
         version="0.0.1",
     )
-    app.include_router(helthcheck_router)
+    app.include_router(healthcheck_router)
     app.include_router(auth_router)
     app.include_router(datacheet_router)
 

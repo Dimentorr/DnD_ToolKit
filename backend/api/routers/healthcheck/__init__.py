@@ -8,6 +8,6 @@
 Описание файла.
 """
 
-from backend.api.routers.helthcheck.helthcheck import helthcheck_router
+from backend.api.routers.healthcheck.healthcheck import healthcheck_router
 
-__all__ = ["helthcheck_router"]
+__all__ = ["healthcheck_router"]

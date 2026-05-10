@@ -12,10 +12,10 @@ from fastapi import APIRouter
 
 from backend.api.models.base import BaseHTTPResponse
 
-helthcheck_router = APIRouter(prefix="/helthcheck", tags=["helthcheck"])
+healthcheck_router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
 
 
-@helthcheck_router.get("/check")
+@healthcheck_router.get("/check")
 async def register():
     """Проверить доступность API.
 
