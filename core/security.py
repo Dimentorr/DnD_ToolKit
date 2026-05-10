@@ -1,6 +1,6 @@
-"""Название: secuirity.py
+"""Название: security.py
 
-Путь: core/secuirity.py
+Путь: core/security.py
 Автор: stepapetruk@ya.ru
 Дата: [05.05.2026]::2026-May-Tuesday
 Описание:

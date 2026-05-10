@@ -12,12 +12,12 @@
 endpoint'ов.
 """
 
-from typing import Annotated
+from typing import Annotated, Callable
 
-from fastapi import Cookie, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 
-from backend.models.token import CookieTokenData
-from core.secuirity import decode_token
+from backend.models.token import CookieTokenData, UserRole
+from core.security import decode_token
 
 AccessTokenCookie = Annotated[
     str | None,
@@ -65,13 +65,43 @@ async def get_current_token_data(
     user_uuid = payload.get("sub")
     scope = payload.get("scope")
     token_type = payload.get("type")
-    if user_uuid is None or token_type != "access" or scope != "user":
+    if user_uuid is None or token_type != "access":
         raise credentials_exception
 
     token_data = CookieTokenData(
         user_uuid=user_uuid,
-        scope=scope,
+        role=scope,
         token_type=token_type,
     )
 
     return token_data
+
+
+def require_roles(
+    allowed_roles: list[UserRole],
+) -> Callable:
+    """Создать dependency для проверки роли пользователя.
+
+    Args:
+        allowed_roles (list[UserRole]): Роли, которым разрешён доступ.
+
+    Returns:
+        Callable: FastAPI dependency, возвращающая данные пользователя из токена.
+
+    Raises:
+        HTTPException: Возникает со статусом 403, если роль пользователя
+            не входит в список разрешённых.
+    """
+
+    async def dependency(
+        token_data: Annotated[CookieTokenData, Depends(get_current_token_data)],
+    ) -> CookieTokenData:
+        if token_data.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions",
+            )
+
+        return token_data
+
+    return dependency
