@@ -19,7 +19,7 @@ from backend.db.controller import Database_Controller
 from backend.db.model.token import TokenCreated
 from backend.db.model.user import UserCreated
 from core.config import settings
-from core.secuirity import create_access_token, create_refresh_token, get_hash, verify_password
+from core.security import create_access_token, create_refresh_token, get_hash, verify_password
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
