@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.controller.base import Database
 from backend.db.model.token import TokenCreated, TokenData
-from core import secuirity
+from core import security
 from core.config import settings
 
 
@@ -50,7 +50,7 @@ class TokenController(Database):
         data = {
             "uuid": token_uuid,
             "user_uuid": data.user_uuid,
-            "token": await secuirity.get_hash(data.token, is_static=True),
+            "token": await security.get_hash(data.token, is_static=True),
             "expires_at": datetime.datetime.now(tz=datetime.UTC) + exp,
             "created_at": datetime.datetime.now(tz=datetime.UTC),
             "updated_at": datetime.datetime.now(tz=datetime.UTC),
@@ -241,7 +241,7 @@ class TokenController(Database):
         if refresh_token is None:
             raise ValueError("Refresh token is missing")
 
-        payload = await secuirity.decode_token(refresh_token)
+        payload = await security.decode_token(refresh_token)
 
         if payload is None:
             raise ValueError("Invalid refresh token")
@@ -254,7 +254,7 @@ class TokenController(Database):
         if user_uuid is None:
             raise ValueError("Invalid refresh token payload")
 
-        db_token = await self.get_by_token_hash(token_hash=await secuirity.get_hash(is_static=True, obj=refresh_token))
+        db_token = await self.get_by_token_hash(token_hash=await security.get_hash(is_static=True, obj=refresh_token))
 
         if db_token is None:
             raise ValueError("Refresh token not found")
@@ -266,7 +266,7 @@ class TokenController(Database):
 
         if db_token.expires_at <= now:
             raise ValueError("Refresh token expired")
-        new_access_token, new_refresh_token = await secuirity.refresh_tokens(
+        new_access_token, new_refresh_token = await security.refresh_tokens(
             refresh_token=refresh_token,
         )
 

@@ -17,7 +17,7 @@ from typing import Annotated, Callable
 from fastapi import Cookie, Depends, HTTPException, status
 
 from backend.models.token import CookieTokenData, UserRole
-from core.secuirity import decode_token
+from core.security import decode_token
 
 AccessTokenCookie = Annotated[
     str | None,

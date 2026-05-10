@@ -10,5 +10,6 @@
 
 from backend.api.routers.auth import auth_router
 from backend.api.routers.datasheet import datacheet_router
+from backend.api.routers.helthcheck import helthcheck_router
 
-__all__ = ["auth_router", "datacheet_router"]
+__all__ = ["auth_router", "datacheet_router", "helthcheck_router"]
