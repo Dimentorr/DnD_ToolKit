@@ -33,7 +33,15 @@ async def create_datasheet(
     data: APIDatasheetCreated,
     current_user: Annotated[
         CookieTokenData,
-        Depends(require_roles([UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN])),
+        Depends(
+            require_roles(
+                [
+                    UserRole.USER,
+                    UserRole.MODERATOR,
+                    UserRole.ADMIN,
+                ],
+            ),
+        ),
     ],
 ) -> BaseHTTPResponse:
     """Создать лист персонажа для текущего пользователя.
@@ -79,7 +87,15 @@ async def update_datasheet(
     data: DatasheetUpdated,
     current_user: Annotated[
         CookieTokenData,
-        Depends(require_roles([UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN])),
+        Depends(
+            require_roles(
+                [
+                    UserRole.USER,
+                    UserRole.MODERATOR,
+                    UserRole.ADMIN,
+                ],
+            ),
+        ),
     ],
 ) -> BaseHTTPResponse:
     """Обновить лист персонажа текущего пользователя.
@@ -133,7 +149,15 @@ async def get_datasheet(
     uuid: UUID,
     current_user: Annotated[
         CookieTokenData,
-        Depends(require_roles([UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN])),
+        Depends(
+            require_roles(
+                [
+                    UserRole.USER,
+                    UserRole.MODERATOR,
+                    UserRole.ADMIN,
+                ],
+            ),
+        ),
     ],
 ) -> Datasheet:
     """Получить лист персонажа по UUID.
@@ -177,7 +201,15 @@ async def delete_datasheet(
     uuid: UUID,
     current_user: Annotated[
         CookieTokenData,
-        Depends(require_roles([UserRole.USER, UserRole.MODERATOR, UserRole.ADMIN])),
+        Depends(
+            require_roles(
+                [
+                    UserRole.USER,
+                    UserRole.MODERATOR,
+                    UserRole.ADMIN,
+                ],
+            ),
+        ),
     ],
 ) -> BaseHTTPResponse:
     """Удалить лист персонажа текущего пользователя.

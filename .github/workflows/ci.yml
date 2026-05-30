@@ -59,12 +59,96 @@ jobs:
 
       - name: Ruff format check
         run: poetry run ruff format --check backend core
+  
+  version-check:
+    name: Check project version
+    runs-on: ubuntu-latest
+
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+      version: ${{ steps.compare.outputs.version }}
+      previous_version: ${{ steps.compare.outputs.previous_version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare project versions
+        id: compare
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python <<'PY'
+          import os
+          import subprocess
+          import tomllib
+          from pathlib import Path
+
+
+          def read_version(content: bytes) -> str:
+              config = tomllib.loads(content.decode("utf-8"))
+
+              if "project" in config and "version" in config["project"]:
+                  return config["project"]["version"]
+
+              if (
+                  "tool" in config
+                  and "poetry" in config["tool"]
+                  and "version" in config["tool"]["poetry"]
+              ):
+                  return config["tool"]["poetry"]["version"]
+
+              raise RuntimeError(
+                  "Version not found in pyproject.toml. "
+                  "Expected project.version or tool.poetry.version."
+              )
+
+
+          current_version = read_version(Path("pyproject.toml").read_bytes())
+
+          if os.environ["EVENT_NAME"] == "pull_request":
+              base_sha = os.environ.get("PR_BASE_SHA", "")
+          else:
+              base_sha = os.environ.get("BEFORE_SHA", "")
+
+          zero_sha = "0" * 40
+          previous_version = None
+
+          if base_sha and base_sha != zero_sha:
+              try:
+                  previous_content = subprocess.check_output(
+                      ["git", "show", f"{base_sha}:pyproject.toml"],
+                      stderr=subprocess.DEVNULL,
+                  )
+              except subprocess.CalledProcessError:
+                  previous_version = None
+              else:
+                  previous_version = read_version(previous_content)
+
+          changed = previous_version != current_version
+
+          print(f"Previous version: {previous_version or '<not found>'}")
+          print(f"Current version:  {current_version}")
+          print(f"Version changed:  {changed}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"changed={'true' if changed else 'false'}\n")
+              output.write(f"version={current_version}\n")
+              output.write(f"previous_version={previous_version or ''}\n")
+          PY
 
   docker-build:
     name: Docker build
     runs-on: ubuntu-latest
     needs:
       - ruff
+      - version-check
+
+    if: needs.version-check.outputs.changed == 'true'
 
     permissions:
       contents: read
@@ -91,6 +175,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=raw,value=${{ needs.version-check.outputs.version }}
             type=ref,event=branch
             type=sha,prefix=sha-
 
