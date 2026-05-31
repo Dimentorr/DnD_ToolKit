@@ -136,24 +136,22 @@ class RulesetController(Database):
         )
 
         async with self.session(_session) as session:
-            row = await session.execute(sql, {"uuid": ruleset_uuid})
-            rows = row.fetchall()
-            if len(rows) > 1:
-                raise ValueError("Get more than one datasheet")
+            result = await session.execute(sql, {"uuid": ruleset_uuid})
+            row = result.mappings().one_or_none()
             if row is None or row == []:
                 return None
 
         return Ruleset(
-            uuid=row[0],
-            owner_uuid=row[1],
-            parent_uuid=row[2],
-            name=row[3],
-            description=row[4],
-            version=row[5],
-            status=Status(row[6]),
-            is_public=row[7],
-            created_at=self.parse_datetime(row[8]),
-            updated_at=self.parse_datetime(row[9]),
+            uuid=row["uuid"],
+            owner_uuid=row["owner_uuid"],
+            parent_uuid=row["parent_uuid"],
+            name=row["name"],
+            description=row["description"],
+            version=row["version"],
+            status=Status(row["status"]),
+            is_public=row["is_public"],
+            created_at=self.parse_datetime(row["created_at"]),
+            updated_at=self.parse_datetime(row["updated_at"]),
         )
 
     async def update(
