@@ -158,10 +158,10 @@ class DatasheetController(Database):
 
         async with self.session(_session) as session:
             row = await session.execute(_sql, {"uuid": sheet_uuid})
-            rows = row.scalars().all()
+            rows = row.fetchall()
             if len(rows) > 1:
                 raise ValueError("Get more than one datasheet")
-            if rows is None:
+            if row is None or row == []:
                 return None
         res = rows[0]
         return Datasheet(

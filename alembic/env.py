@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 # TODO вынести от сюда в отдельный файл, это должно быть возможно
 from backend.db.orm import datasheets  # noqa: F401
 from backend.db.orm import user  # noqa: F401
+from backend.db.orm import ruleset  # noqa: F401
 
 from core.config import settings
 load_dotenv()

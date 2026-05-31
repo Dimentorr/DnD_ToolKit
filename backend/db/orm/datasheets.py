@@ -1,8 +1,8 @@
 """Название: datasheets.py
 
-Путь: backend\ORM\datasheets.py
+Путь: backend/db/orm/datasheets.py
 Автор: stepapetruk@ya.ru
-Дата: [03.05.2026]::2026-May-Sunday
+Дата: [31.05.2026]::2026-May-Sunday
 Описание:
 
 Описание файла.

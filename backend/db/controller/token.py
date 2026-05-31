@@ -96,7 +96,7 @@ class TokenController(Database):
             rows = row.fetchall()
             if len(rows) > 1:
                 raise ValueError("Get more than one token")
-            if rows is None:
+            if row is None or row == []:
                 return None
         res = rows[0]
         return TokenData(
