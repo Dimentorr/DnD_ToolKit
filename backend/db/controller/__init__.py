@@ -39,7 +39,7 @@ class Database_Controller(Database):
         return self._datasheet
 
     @property
-    def Rulset(self) -> RulesetController:
+    def Ruleset(self) -> RulesetController:
         """Контроллер для работы с таблицей rulesets"""
         return self._ruleset
 
@@ -49,4 +49,4 @@ class Database_Controller(Database):
         self._user = UserController(url)
         self._token = TokenController(url)
         self._datasheet = DatasheetController(url)
-        self._ruleset = DatasheetController(url)
+        self._ruleset = RulesetController(url)

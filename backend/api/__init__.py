@@ -10,7 +10,7 @@
 
 from fastapi import FastAPI
 
-from backend.api.routers import auth_router, datacheet_router, healthcheck_router
+from backend.api.routers import auth_router, datacheet_router, healthcheck_router, rule_router
 
 
 def create_app() -> FastAPI:
@@ -29,5 +29,6 @@ def create_app() -> FastAPI:
     app.include_router(healthcheck_router)
     app.include_router(auth_router)
     app.include_router(datacheet_router)
+    app.include_router(rule_router)
 
     return app
