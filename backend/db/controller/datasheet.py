@@ -12,8 +12,8 @@
 """
 
 import datetime
-import json
 import uuid
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import bindparam, text
@@ -61,31 +61,58 @@ class DatasheetController(Database):
         Returns:
             UUID: UUID созданного листа персонажа.
         """
-        # TODO добавить потом рассу
-        _sql = text(
+        sql = text(
             """
+            WITH context AS (
+                SELECT
+                    rulesets.uuid AS ruleset_uuid,
+                    (
+                        :race_uuid IS NULL
+                        OR EXISTS (
+                            SELECT 1
+                            FROM races
+                            WHERE races.uuid = :race_uuid
+                              AND races.ruleset_uuid = rulesets.uuid
+                        )
+                    ) AS race_valid
+                FROM rulesets
+                WHERE rulesets.uuid = :ruleset_uuid
+                  AND (rulesets.owner_uuid = :user_uuid OR rulesets.is_public IS TRUE)
+            ),
+            inserted AS (
                 INSERT INTO datasheets (
-                                uuid,
-                                user_uuid,
-                                name,
-                                wallet,
-                                inventory,
-                                stats,
-                                features,
-                                created_at,
-                                updated_at
-                            )
-                     VALUES            (
-                                :uuid,
-                                :user_uuid,
-                                :name, 
-                                :wallet, 
-                                :inventory, 
-                                :stats, 
-                                :features, 
-                                :created_at, 
-                                :updated_at
-                            )
+                    uuid,
+                    user_uuid,
+                    ruleset_uuid,
+                    name,
+                    race_uuid,
+                    wallet,
+                    inventory,
+                    stats,
+                    features,
+                    created_at,
+                    updated_at
+                )
+                SELECT
+                    :uuid,
+                    :user_uuid,
+                    context.ruleset_uuid,
+                    :name,
+                    :race_uuid,
+                    :wallet,
+                    :inventory,
+                    :stats,
+                    :features,
+                    :created_at,
+                    :updated_at
+                FROM context
+                WHERE context.race_valid
+                RETURNING uuid
+            )
+            SELECT
+                EXISTS (SELECT 1 FROM context) AS ruleset_found,
+                COALESCE((SELECT race_valid FROM context), FALSE) AS race_valid,
+                (SELECT uuid FROM inserted) AS inserted_uuid
             """
         ).bindparams(
             bindparam("wallet", type_=JSONB),
@@ -98,7 +125,9 @@ class DatasheetController(Database):
         _params = {
             "uuid": sheet_uuid,
             "user_uuid": data.user_uuid,
+            "ruleset_uuid": data.ruleset_uuid,
             "name": data.name,
+            "race_uuid": data.race,
             "wallet": data.wallet.as_dict(),
             "inventory": data.inventory.as_dict(),
             "stats": data.stats.as_dict(),
@@ -107,13 +136,23 @@ class DatasheetController(Database):
             "updated_at": now,
         }
         async with self.session(_session) as session:
-            await session.execute(_sql, _params)
-        return sheet_uuid
+            result = await session.execute(sql, _params)
+            row = result.mappings().one()
+
+        if not row["ruleset_found"]:
+            raise ValueError("Книга правил не найдена или недоступна")
+        if not row["race_valid"]:
+            raise ValueError("Раса не найдена в выбранной книге правил")
+        if row["inserted_uuid"] is None:
+            raise RuntimeError("При создании листа персонажа БД не вернула UUID")
+
+        return row["inserted_uuid"]
 
     async def get(
         self,
         sheet_uuid: UUID,
         _session: AsyncSession | None = None,
+        owner_uuid: UUID | None = None,
     ) -> Datasheet | None:
         """Получить лист персонажа по UUID.
 
@@ -129,6 +168,8 @@ class DatasheetController(Database):
                 SQLAlchemy-сессия. Если передана, используется она. Если не
                 передана, контроллер создаёт сессию самостоятельно.
                 Defaults to None.
+            owner_uuid (UUID | None, optional): Ограничить операцию листом
+                указанного владельца. Defaults to None.
 
         Returns:
             Datasheet | None: Лист персонажа, если запись найдена.
@@ -138,49 +179,58 @@ class DatasheetController(Database):
             ValueError: Возникает, если по одному UUID найдено больше одного
                 листа персонажа.
         """
-        _sql = text(
+        owner_filter = ""
+        params: dict[str, Any] = {"uuid": sheet_uuid}
+
+        if owner_uuid is not None:
+            owner_filter = " AND user_uuid = :owner_uuid"
+            params["owner_uuid"] = owner_uuid
+
+        sql = text(
             """
-                SELECT (
-                        uuid,       -- 0
-                        user_uuid,  -- 1
-                        name,       -- 2
-                        wallet,     -- 3
-                        inventory,  -- 4
-                        stats,      -- 5
-                        features,   -- 6
-                        created_at, -- 7
-                        updated_at  -- 8
-                )
-                  FROM datasheets
-                  WHERE uuid = :uuid
+                SELECT uuid,
+                       user_uuid,
+                       ruleset_uuid,
+                       race_uuid,
+                       name,
+                       wallet,
+                       inventory,
+                       stats,
+                       features,
+                       created_at,
+                       updated_at
+                FROM datasheets
+                WHERE uuid = :uuid
             """
+            + owner_filter
         )
 
         async with self.session(_session) as session:
-            row = await session.execute(_sql, {"uuid": sheet_uuid})
-            rows = row.fetchall()
-            if len(rows) > 1:
-                raise ValueError("Get more than one datasheet")
-            if row is None or row == []:
-                return None
-        res = rows[0]
+            result = await session.execute(sql, params)
+            row = result.mappings().one_or_none()
+
+        if row is None:
+            return None
+
         return Datasheet(
-            uuid=res[0],
-            user_uuid=res[1],
-            name=res[2],
-            wallet=Wallet(**json.loads(res[3])),
-            inventory=Inventory(**json.loads(res[4])),
-            stats=Stats(**json.loads(res[5])),
-            features=Features(**json.loads(res[6])),
-            created_at=self.parse_datetime(res[7]),
-            updated_at=self.parse_datetime(res[8]),
-            race=None,
+            uuid=row["uuid"],
+            user_uuid=row["user_uuid"],
+            ruleset_uuid=row["ruleset_uuid"],
+            race=row["race_uuid"],
+            name=row["name"],
+            wallet=Wallet.model_validate(row["wallet"]),
+            inventory=Inventory.model_validate(row["inventory"]),
+            stats=Stats.model_validate(row["stats"]),
+            features=Features.model_validate(row["features"]),
+            created_at=self.parse_datetime(row["created_at"]),
+            updated_at=self.parse_datetime(row["updated_at"]),
         )
 
     async def update(
         self,
         data: DatasheetUpdated,
         _session: AsyncSession | None = None,
+        owner_uuid: UUID | None = None,
     ) -> UUID:
         """Обновить лист персонажа.
 
@@ -199,6 +249,8 @@ class DatasheetController(Database):
                 SQLAlchemy-сессия. Если передана, используется она. Если не
                 передана, контроллер создаёт сессию самостоятельно.
                 Defaults to None.
+            owner_uuid (UUID | None, optional): UUID владельца для атомарной
+                проверки прав в UPDATE. Defaults to None.
 
         Returns:
             UUID: UUID обновлённого листа персонажа.
@@ -209,9 +261,11 @@ class DatasheetController(Database):
         """
         now = datetime.datetime.now(tz=datetime.UTC)
 
-        params = {
+        params: dict[str, Any] = {
             "updated_at": now,
             "uuid": data.uuid,
+            "ruleset_uuid": data.ruleset_uuid,
+            "race_uuid": data.race,
         }
 
         details: list[str] = []
@@ -241,17 +295,72 @@ class DatasheetController(Database):
             details.append("name = :name")
             params["name"] = data.name
 
+        if "ruleset_uuid" in data.model_fields_set:
+            if data.ruleset_uuid is None:
+                raise ValueError("Поле ruleset_uuid не может быть null")
+            details.append("ruleset_uuid = :ruleset_uuid")
+            params["ruleset_uuid"] = data.ruleset_uuid
+
+        if "race" in data.model_fields_set:
+            details.append("race_uuid = :race_uuid")
+            params["race_uuid"] = data.race
+
         if len(details) == 0:
             # TODO сделать нормальные ошибки
             raise ValueError("Не были переданы данные для обновления листа персонажа!")
 
         details.append("updated_at = :updated_at")
 
+        change_ruleset = "ruleset_uuid" in data.model_fields_set
+        change_race = "race" in data.model_fields_set
+        params["change_ruleset"] = change_ruleset
+        params["change_race"] = change_race
+        params["validate_relations"] = change_ruleset or change_race
+
+        owner_filter = ""
+        ruleset_access_filter = ""
+        if owner_uuid is not None:
+            owner_filter = " AND ds.user_uuid = :owner_uuid"
+            ruleset_access_filter = " AND (rulesets.owner_uuid = :owner_uuid OR rulesets.is_public IS TRUE)"
+            params["owner_uuid"] = owner_uuid
+
+        relation_filter = (
+            """
+            AND (
+                NOT :validate_relations
+                OR EXISTS (
+                    SELECT 1
+                    FROM rulesets
+                    WHERE rulesets.uuid = (
+                        CASE WHEN :change_ruleset THEN :ruleset_uuid ELSE ds.ruleset_uuid END
+                    )
+            """
+            + ruleset_access_filter
+            + """
+                    AND (
+                        (CASE WHEN :change_race THEN :race_uuid ELSE ds.race_uuid END) IS NULL
+                        OR EXISTS (
+                            SELECT 1
+                            FROM races
+                            WHERE races.uuid = (
+                                CASE WHEN :change_race THEN :race_uuid ELSE ds.race_uuid END
+                            )
+                              AND races.ruleset_uuid = rulesets.uuid
+                        )
+                    )
+                )
+            )
+            """
+        )
+
         sql = text(
             f"""
             UPDATE datasheets AS ds
             SET {", ".join(details)}
             WHERE ds.uuid = :uuid
+            {owner_filter}
+            {relation_filter}
+            RETURNING ds.uuid
             """
         )
 
@@ -261,14 +370,19 @@ class DatasheetController(Database):
             sql = sql.bindparams(*bind_params)
 
         async with self.session(_session) as session:
-            await session.execute(sql, params)
+            result = await session.execute(sql, params)
+            updated_uuid = result.scalar_one_or_none()
 
-        return data.uuid
+        if updated_uuid is None:
+            raise ValueError(f"Лист персонажа с UUID {data.uuid} не найден или не принадлежит пользователю")
+
+        return updated_uuid
 
     async def delete(
         self,
         sheet_uuid: UUID,
         _session: AsyncSession | None = None,
+        owner_uuid: UUID | None = None,
     ) -> None:
         """Удалить лист персонажа из таблицы datasheets.
 
@@ -280,16 +394,31 @@ class DatasheetController(Database):
                 SQLAlchemy-сессия. Если передана, используется она. Если не
                 передана, контроллер создаёт сессию самостоятельно.
                 Defaults to None.
+            owner_uuid (UUID | None, optional): UUID владельца для атомарной
+                проверки прав в DELETE. Defaults to None.
 
         Returns:
             None: Метод ничего не возвращает.
         """
-        _sql = text(
+        owner_filter = ""
+        params: dict[str, Any] = {"uuid": sheet_uuid}
+
+        if owner_uuid is not None:
+            owner_filter = " AND user_uuid = :owner_uuid"
+            params["owner_uuid"] = owner_uuid
+
+        sql = text(
             """
                 DELETE FROM datasheets
-                 WHERE uuid = :uuid
+                WHERE uuid = :uuid
             """
+            + owner_filter
+            + " RETURNING uuid"
         )
 
         async with self.session(_session) as session:
-            await session.execute(_sql, {"uuid": sheet_uuid})
+            result = await session.execute(sql, params)
+            deleted_uuid = result.scalar_one_or_none()
+
+        if deleted_uuid is None:
+            raise ValueError(f"Лист персонажа с UUID {sheet_uuid} не найден или не принадлежит пользователю")

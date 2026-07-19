@@ -8,7 +8,10 @@
 Описание файла.
 """
 
+from typing import Any
 from uuid import UUID
+
+from pydantic import Field
 
 from backend.models.base import BasePydanticModel
 from backend.models.ruleset import Status
@@ -19,12 +22,12 @@ class APIRulesetCreated(BasePydanticModel):
 
     owner_uuid: UUID | None = None
     parent_uuid: UUID | None = None
-    name: str
+    name: str = Field(min_length=1, max_length=255)
     description: str = "Описание книги правил"
-    version: str = "0.0.1"
+    version: str = Field(default="0.0.1", min_length=1, max_length=24)
     status: Status = Status.InWork
     is_public: bool = False
 
-    def as_dict(self) -> dict:
+    def as_dict(self) -> dict[str, Any]:
         """Привести модель к словарю."""
         return self.model_dump(mode="json")
