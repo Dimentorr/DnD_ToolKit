@@ -54,7 +54,36 @@
 - **passlib / bcrypt**
 - **Poetry**
 - **Ruff**
+- **Pytest**
 - **GitHub Actions**
+
+---
+
+## Тесты
+
+Быстрые тесты моделей и ORM-метаданных запускаются без БД:
+
+```bash
+poetry run pytest -q
+```
+
+SQL-интеграционные тесты требуют PostgreSQL. Рекомендуемый вариант — передать
+отдельный URL:
+
+```bash
+DND_TEST_DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/test_db \
+  poetry run pytest -q
+```
+
+Для локального запуска разрешено использовать сервер из `.env`:
+
+```bash
+DND_TEST_USE_CONFIGURED_DATABASE=1 poetry run pytest -q
+```
+
+В обоих режимах тесты создают случайную схему `dnd_toolkit_test_<uuid>`,
+делают её единственным `search_path` и удаляют после прогона. Таблицы рабочей
+схемы не очищаются и не изменяются.
 
 ---
 
@@ -73,6 +102,7 @@ DnD_ToolKit/
 │   ├── config.py           # настройки приложения
 │   ├── dependencies.py     # FastAPI dependencies
 │   └── security.py         # JWT, хеширование, security helpers
+├── tests/                  # unit- и PostgreSQL-интеграционные тесты
 ├── alembic.ini
 ├── pyproject.toml
 ├── poetry.lock

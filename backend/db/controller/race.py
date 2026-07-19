@@ -25,7 +25,8 @@ import uuid
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import UUID as SqlUUID
+from sqlalchemy import bindparam, text
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -185,7 +186,7 @@ class RaceController(Database):
                 COALESCE((SELECT parent_valid FROM context), FALSE) AS parent_valid,
                 (SELECT uuid FROM inserted) AS inserted_uuid
             """
-        )
+        ).bindparams(bindparam("parent_uuid", type_=SqlUUID))
         params = {
             "uuid": race_uuid,
             "ruleset_uuid": data.ruleset_uuid,
@@ -294,9 +295,10 @@ class RaceController(Database):
         чтение рас из публичных книг правил. Если книга правил не найдена или
         недоступна, выбрасывается `RaceNotFoundError`.
 
-        Для постраничной выдачи используется cursor-пагинация по UUID расы.
-        Если `cursor` передан, метод возвращает записи с UUID больше переданного
-        курсора. Размер страницы ограничивается параметром `limit`.
+        Для постраничной выдачи используется устойчивый порядок по паре
+        `(created_at, uuid)`. Внешним курсором остаётся UUID последней записи
+        предыдущей страницы: контроллер находит её позицию по времени создания
+        и возвращает следующие записи. Размер страницы ограничивается `limit`.
 
         Args:
             ruleset_uuid (UUID): UUID книги правил, для которой нужно получить
@@ -306,8 +308,8 @@ class RaceController(Database):
                 владельца не применяется.
             include_public (bool): Разрешить ли чтение рас из публичной книги
                 правил, если она не принадлежит пользователю.
-            cursor (UUID | None): UUID последней записи с предыдущей страницы.
-                Если не передан, возвращается первая страница.
+            cursor (UUID | None): UUID последней записи предыдущей страницы.
+                Позиция курсора определяется по её `created_at` и UUID.
             limit (int): Максимальное количество записей на странице. Допустимый
                 диапазон: от 1 до 100 включительно.
             _session (AsyncSession | None): Внешняя асинхронная SQLAlchemy-сессия.
@@ -342,7 +344,16 @@ class RaceController(Database):
 
         if cursor is not None:
             params["cursor"] = cursor
-            cursor_filter = " AND races.uuid > :cursor"
+            cursor_filter = """
+                AND EXISTS (
+                    SELECT 1
+                    FROM races AS cursor_race
+                    WHERE cursor_race.uuid = :cursor
+                      AND cursor_race.ruleset_uuid = :ruleset_uuid
+                      AND (races.created_at, races.uuid)
+                          > (cursor_race.created_at, cursor_race.uuid)
+                )
+            """
 
         sql = text(
             """
@@ -370,7 +381,7 @@ class RaceController(Database):
             """
             + cursor_filter
             + """
-                ORDER BY races.uuid
+                ORDER BY races.created_at, races.uuid
                 LIMIT :limit
             )
             SELECT
@@ -384,7 +395,7 @@ class RaceController(Database):
                 page.updated_at
             FROM (SELECT 1) AS singleton
             LEFT JOIN page ON TRUE
-            ORDER BY page.uuid
+            ORDER BY page.created_at, page.uuid
             """
         )
 
@@ -520,7 +531,7 @@ class RaceController(Database):
                 COALESCE((SELECT parent_valid FROM candidate), FALSE) AS parent_valid,
                 (SELECT uuid FROM updated) AS updated_uuid
             """
-        )
+        ).bindparams(bindparam("parent_uuid", type_=SqlUUID))
 
         try:
             async with self.session(_session) as session:

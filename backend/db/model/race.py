@@ -76,7 +76,7 @@ class RaceUpdated(BasePydanticModel):
     uuid: UUID
     parent_uuid: UUID | None = None
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(default=None, min_length=1)
 
     def as_dict(self) -> dict[str, Any]:
         """Convert only explicitly supplied fields to a dictionary."""
