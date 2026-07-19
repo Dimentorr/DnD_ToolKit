@@ -10,6 +10,7 @@
 
 from backend.db.controller.base import Database
 from backend.db.controller.datasheet import DatasheetController
+from backend.db.controller.race import RaceController
 from backend.db.controller.ruleset import RulesetController
 from backend.db.controller.token import TokenController
 from backend.db.controller.user import UserController
@@ -22,6 +23,7 @@ class Database_Controller(Database):
     _token: TokenController
     _datasheet: DatasheetController
     _ruleset: RulesetController
+    _race: RaceController
 
     @property
     def User(self) -> UserController:
@@ -43,6 +45,11 @@ class Database_Controller(Database):
         """Контроллер для работы с таблицей rulesets"""
         return self._ruleset
 
+    @property
+    def Race(self) -> RaceController:
+        """Контроллер для работы с таблицей races."""
+        return self._race
+
     def __init__(self, url: str) -> None:
         """Инициализирует главный контроллер и все вложенные sub-controller'ы"""
         super().__init__(url)
@@ -50,3 +57,4 @@ class Database_Controller(Database):
         self._token = TokenController(url)
         self._datasheet = DatasheetController(url)
         self._ruleset = RulesetController(url)
+        self._race = RaceController(url)

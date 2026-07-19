@@ -71,13 +71,20 @@ async def create_datasheet(
     data_datasheet = DatasheetCreated(
         user_uuid=current_user.user_uuid,
         name=data.name,
+        ruleset_uuid=data.ruleset_uuid,
         race=data.race,
         stats=data.stats,
         wallet=data.wallet,
         features=data.features,
         inventory=data.inventory,
     )
-    _uuid = await _cnt.Datasheet.insert(data=data_datasheet)
+    try:
+        _uuid = await _cnt.Datasheet.insert(data=data_datasheet)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Книга правил или раса не найдены",
+        ) from error
 
     return BaseHTTPResponse(message=str(_uuid))
 
@@ -122,26 +129,34 @@ async def update_datasheet(
 
     Raises:
         HTTPException:
-            - Возникает со статусом 400, если лист персонажа с
-            указанным UUID не найден.
-            - Возникает со статусом 403, если лист
-            найден, но не принадлежит текущему пользователю.
+            - Возникает со статусом 400, если запрос не содержит полей
+              для обновления или ruleset_uuid явно равен null.
+            - Возникает со статусом 404, если лист или выбранные связанные
+              объекты не найдены либо недоступны пользователю.
     """
     _cnt = Database_Controller(url=settings.db.url)
-    if result := await _cnt.Datasheet.get(sheet_uuid=data.uuid):
-        if UUID(result.user_uuid) == UUID(current_user.user_uuid):
-            await _cnt.Datasheet.update(data=data)
-            return BaseHTTPResponse()
+
+    if not data.model_fields_set - {"uuid"}:
         raise HTTPException(
-            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-            detail="Not permission",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Не переданы поля для обновления листа персонажа",
         )
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Incorrect datasheet uuid",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+
+    if "ruleset_uuid" in data.model_fields_set and data.ruleset_uuid is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Поле ruleset_uuid не может быть null",
+        )
+
+    try:
+        await _cnt.Datasheet.update(data=data, owner_uuid=current_user.user_uuid)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Лист персонажа не найден",
+        ) from error
+
+    return BaseHTTPResponse()
 
 
 @datacheet_router.get("/get")
@@ -165,11 +180,8 @@ async def get_datasheet(
     Получает лист персонажа из БД по переданному UUID. Endpoint доступен только
     авторизованным пользователям с разрешённой ролью.
 
-    В текущей реализации метод проверяет только авторизацию и роль пользователя,
-    но не проверяет владельца листа. Если листы персонажей не должны быть
-    публичными для всех авторизованных пользователей, необходимо добавить
-    проверку `result.user_uuid == current_user.user_uuid` или отдельную логику
-    доступа для ролей `MODERATOR` и `ADMIN`.
+    Получение ограничено листами текущего пользователя. Чужой UUID
+    возвращает тот же ответ 404, что и отсутствующий лист.
 
     Args:
         uuid (UUID): UUID листа персонажа, который нужно получить.
@@ -186,12 +198,14 @@ async def get_datasheet(
             указанным UUID не найден.
     """
     _cnt = Database_Controller(url=settings.db.url)
-    result = await _cnt.Datasheet.get(sheet_uuid=uuid)
+    result = await _cnt.Datasheet.get(
+        sheet_uuid=uuid,
+        owner_uuid=current_user.user_uuid,
+    )
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Datasheet not found",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Лист персонажа не найден",
         )
     return result
 
@@ -234,23 +248,20 @@ async def delete_datasheet(
 
     Raises:
         HTTPException:
-            - Возникает со статусом 400, если лист персонажа с
-            указанным UUID не найден.
-            - Возникает со статусом 403, если лист
-            найден, но не принадлежит текущему пользователю.
+            - Возникает со статусом 404, если лист не найден
+              или недоступен текущему пользователю.
     """
     _cnt = Database_Controller(url=settings.db.url)
-    if result := await _cnt.Datasheet.get(sheet_uuid=uuid):
-        if UUID(result.user_uuid) == UUID(current_user.user_uuid):
-            await _cnt.Datasheet.delete(sheet_uuid=uuid)
-            return BaseHTTPResponse()
-        raise HTTPException(
-            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-            detail="Not permission",
-            headers={"WWW-Authenticate": "Bearer"},
+
+    try:
+        await _cnt.Datasheet.delete(
+            sheet_uuid=uuid,
+            owner_uuid=current_user.user_uuid,
         )
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Incorrect datasheet uuid",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Лист персонажа не найден",
+        ) from error
+
+    return BaseHTTPResponse()
